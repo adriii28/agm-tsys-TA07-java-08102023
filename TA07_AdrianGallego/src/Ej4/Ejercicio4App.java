@@ -9,6 +9,8 @@ public class Ejercicio4App {
 public static void main(String[] args) {
 	
 		final int STOCK_INICIAL = 10;
+		
+        final double IVA = 0.21;
 	
 		Scanner sc = new Scanner(System.in);
 		
@@ -19,27 +21,27 @@ public static void main(String[] args) {
         ArrayList<Integer> cantidadArray = new ArrayList<Integer>();
 
 		//Base de datos de tienda (es una libreria)
-		BDProductos.put("Lapiz", 0.5);
-		BDProductos.put("Libro mates", 20.0);
-		BDProductos.put("Estuche", 10.0);
-		BDProductos.put("Mochila", 10.0);
-		BDProductos.put("Boli", 1.0);
-		BDProductos.put("Libreta", 4.0);
-		BDProductos.put("Libro ingles", 19.0);
-		BDProductos.put("Carpeta", 15.0);
-		BDProductos.put("Goma", 2.0);
-		BDProductos.put("Post-it", 5.0);
+		BDProductos.put("lapiz", 0.5);
+		BDProductos.put("libro mates", 20.0);
+		BDProductos.put("estuche", 10.0);
+		BDProductos.put("mochila", 10.0);
+		BDProductos.put("boli", 1.0);
+		BDProductos.put("libreta", 4.0);
+		BDProductos.put("libro ingles", 19.0);
+		BDProductos.put("carpeta", 15.0);
+		BDProductos.put("goma", 2.0);
+		BDProductos.put("post-it", 5.0);
 		
-		BDStock.put("Lapiz", 10);
-		BDStock.put("Libro mates", 10);
-		BDStock.put("Estuche", 10);
-		BDStock.put("Mochila", 10);
-		BDStock.put("Boli", 10);
-		BDStock.put("Libreta", 10);
-		BDStock.put("Libro ingles", 10);
-		BDStock.put("Carpeta", 10);
-		BDStock.put("Goma", 10);
-		BDStock.put("Post-it", 10);
+		BDStock.put("lapiz", 10);
+		BDStock.put("libro mates", 10);
+		BDStock.put("estuche", 10);
+		BDStock.put("mochila", 10);
+		BDStock.put("boli", 10);
+		BDStock.put("libreta", 10);
+		BDStock.put("libro ingles", 10);
+		BDStock.put("carpeta", 10);
+		BDStock.put("goma", 10);
+		BDStock.put("post-it", 10);
 		
 		int accionUsuario = 0;
 		
@@ -59,7 +61,7 @@ public static void main(String[] args) {
 				listarTodosArticulos(BDProductos, BDStock);
 				break;
 			case 4:
-				generarVenta(BDProductos, BDStock,sc,precioArray,cantidadArray);
+				generarVenta(BDProductos, BDStock,sc,precioArray,cantidadArray,IVA);
 				break;
 			case 5:
 				System.out.println("Saliendo...");
@@ -70,19 +72,21 @@ public static void main(String[] args) {
 			}
 			
 		} while (accionUsuario != 5);
+		
+		sc.close();
 	}
 
-	public static void generarVenta(Hashtable<String, Double> bDProductos, Hashtable<String, Integer> bDStock, Scanner sc, ArrayList<Double> precioArray, ArrayList<Integer> cantidadArray) {
+	public static void generarVenta(Hashtable<String, Double> bDProductos, Hashtable<String, Integer> bDStock, Scanner sc, ArrayList<Double> precioArray, ArrayList<Integer> cantidadArray, double IVA) {
 		System.out.println("\n - Venta -");
         		
 		int numProductos = numProductos(sc);
-
+		String nombreArticulo = "";
 		
         for (int i = 0; i < numProductos; i++) {
         	int stock = 0;
         	double precio = 0;
         	System.out.print("Introduce el nombre del articulo que desea comprar: ");
-        	String nombreArticulo = sc.nextLine();
+        	nombreArticulo = sc.nextLine();
         	
     		Enumeration<Integer> stockElement = bDStock.elements();
     		Enumeration<Double> precioElement = bDProductos.elements();
@@ -93,31 +97,74 @@ public static void main(String[] args) {
 				stock = (Integer) stockElement.nextElement();
 				precio = (Double) precioElement.nextElement();
 				if (string.toLowerCase().equals(nombreArticulo.toLowerCase())) {
-					System.out.println(stock+" " +precio);
+					System.out.println(" -> Stock del articulo: " +stock);
 					precioArray.add(precio);
 
 				}
 			}
         
-            int cantidad = cantidadProducto(sc);
+            int cantidad = cantidadProducto(sc,stock,cantidadArray);
             
-            if (cantidad>stock) {
-				System.out.println(" -> !La cantidad comprada no puede superar al stock ");
-			} else {
-				cantidadArray.add(cantidad);
-			}
+            bDStock.put(nombreArticulo.toLowerCase(), (stock-cantidad));
+            
+            double precioFinal = calcularPrecio(precioArray, cantidadArray);
+            double precioIva = precioFinal + (precioFinal * IVA);
+            int totalArticulos = cantidadArray.size();
+
+            imprimirInfo(precioFinal, precioIva, totalArticulos);
+
+            double cantPagada = cantidadPagada(sc, precioIva);
+            double devolver = cantPagada - precioIva;
+            System.out.println("- Cantidad a devolver -> " + devolver + "€\n");
             
 		}
-        
-        System.out.println(precioArray.toString());
-        System.out.println(cantidadArray.toString());
-
 	
 	}
 	
+	public static double cantidadPagada(Scanner sc, double precioIva) {
+        double cantPagada = 0;
+        boolean valido = false;
+
+        while (!valido) {
+            System.out.print("Cantidad pagada: ");
+            String cantPagadaString = sc.nextLine();
+
+            try {
+                cantPagada = Double.parseDouble(cantPagadaString);
+                if (cantPagada >= precioIva) {
+                    valido = true;
+                } else {
+                    System.out.println("La cantidad a pagar debe ser mayor o igual al precio con IVA");
+                }
+            } catch (Exception e) {
+                System.out.println("Introduce un caracter valido");
+            }
+        }
+
+        return cantPagada;
+    }
+	
+	public static void imprimirInfo(double precio, double precioIva, int totalArticulos) {
+	        System.out.println("\n --- RESUMEN COMPRA ---");
+	        System.out.println("- IVA aplicado -> 21%");
+	        System.out.println("- Precio bruto -> " + precio + "€");
+	        System.out.println("- Precio con iva -> " + precioIva + "€");
+	        System.out.println("- Numero de articulos -> " + totalArticulos);
+	}
+	
+	public static double calcularPrecio(ArrayList<Double> compra, ArrayList<Integer> cantidadArray) {
+        double totalCompra = 0;
+
+        for (int i = 0; i < compra.size(); i++) {
+            double sumaArticulos = compra.get(i) * cantidadArray.get(i);
+            totalCompra += sumaArticulos;
+        }
+
+        return totalCompra;
+    }
 
 	
-	public static int cantidadProducto(Scanner sc) {
+	public static int cantidadProducto(Scanner sc, int stock, ArrayList<Integer> cantidadArray) {
         int cantidad = 0;
         boolean valido = false;
 
@@ -128,15 +175,19 @@ public static void main(String[] args) {
             try {
                 cantidad = Integer.parseInt(cantidadString);
                 if (cantidad >= 0) {
-                    valido = true;
-                } else {
+                	if (cantidad <stock){
+                		cantidadArray.add(cantidad);
+                        valido = true;
+                    } else {
+        				System.out.println(" -> !La cantidad comprada no puede superar al stock ");
+                    }
+                }  else {
                     System.out.println("Introduce una cifra entera positiva");
                 }
             } catch (Exception e) {
                 System.out.println("Introduce un caracter valido");
             }
         }
-
         return cantidad;
     }
 
